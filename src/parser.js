@@ -1,0 +1,81 @@
+// Parses free-form check-in messages like:
+//   "ran 30 min"
+//   "30 minutes of yoga this morning, felt great"
+//   "walked the dog for an hour"
+//   "1h30m bike ride"
+//   "hiit workout - 45 mins"
+// Returns { minutes, activity } or null if no duration could be found.
+
+const ACTIVITY_KEYWORDS = [
+  'running', 'run', 'ran', 'jog', 'jogging', 'jogged',
+  'walking', 'walk', 'walked', 'hike', 'hiking', 'hiked', 'trekking',
+  'yoga', 'pilates', 'stretching', 'stretch', 'stretched',
+  'gym', 'workout', 'weights', 'lifting', 'lifted', 'strength training', 'strength',
+  'cardio', 'hiit',
+  'cycling', 'cycle', 'cycled', 'biking', 'bike', 'biked',
+  'swimming', 'swim', 'swam',
+  'dance', 'dancing', 'danced', 'zumba',
+  'basketball', 'football', 'soccer', 'badminton', 'tennis', 'volleyball',
+  'climbing', 'climb', 'climbed', 'bouldering',
+  'rowing', 'row', 'rowed',
+  'boxing', 'boxed', 'kickboxing', 'muay thai',
+  'skating', 'skateboarding', 'skiing', 'ski', 'skied', 'skated',
+  'sports', 'exercise', 'exercised', 'training', 'trained',
+];
+
+function normalize(text) {
+  return text
+    .toLowerCase()
+    .replace(/\bhalf an hour\b/g, '30 minutes')
+    .replace(/\bhalf a hour\b/g, '30 minutes')
+    .replace(/\ban hour\b/g, '1 hour')
+    .replace(/\ba hour\b/g, '1 hour')
+    .replace(/\bquarter of an hour\b/g, '15 minutes');
+}
+
+function parseDuration(rawText) {
+  const text = normalize(rawText);
+  let totalMinutes = 0;
+  let matched = false;
+
+  // Combined "1h30m" / "1 h 30 m" style
+  const compact = text.match(/\b(\d+(?:\.\d+)?)\s*h(?:rs?|ours?)?\s*(\d+(?:\.\d+)?)\s*m(?:ins?|inutes?)?\b/);
+  if (compact) {
+    totalMinutes += parseFloat(compact[1]) * 60 + parseFloat(compact[2]);
+    matched = true;
+  } else {
+    const hourMatch = text.match(/\b(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|h)\b/);
+    if (hourMatch) {
+      totalMinutes += parseFloat(hourMatch[1]) * 60;
+      matched = true;
+    }
+    const minuteMatch = text.match(/\b(\d+(?:\.\d+)?)\s*(?:minutes?|mins?|m)\b/);
+    if (minuteMatch) {
+      totalMinutes += parseFloat(minuteMatch[1]);
+      matched = true;
+    }
+  }
+
+  if (!matched || totalMinutes <= 0) return null;
+  return Math.round(totalMinutes);
+}
+
+function parseActivity(rawText) {
+  const text = rawText.toLowerCase();
+  for (const keyword of ACTIVITY_KEYWORDS) {
+    const re = new RegExp(`\\b${keyword.replace(/\s+/g, '\\s+')}\\b`);
+    if (re.test(text)) {
+      return keyword;
+    }
+  }
+  return null;
+}
+
+function parseCheckin(rawText) {
+  const minutes = parseDuration(rawText);
+  if (minutes === null) return null;
+  const activity = parseActivity(rawText) || 'activity';
+  return { minutes, activity };
+}
+
+module.exports = { parseCheckin, parseDuration, parseActivity, ACTIVITY_KEYWORDS };

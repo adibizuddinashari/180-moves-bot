@@ -1,0 +1,20 @@
+{
+  "name": "180-moves-bot",
+  "version": "1.0.0",
+  "description": "Discord bot for the 180 Moves community: logs activity check-ins, tracks weekly progress toward 180 minutes, and runs a leveling/XP system.",
+  "type": "commonjs",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "deploy-commands": "node src/deploy-commands.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.3.0",
+    "discord.js": "^14.16.3",
+    "dotenv": "^16.4.5",
+    "node-cron": "^3.0.3"
+  }
+}
