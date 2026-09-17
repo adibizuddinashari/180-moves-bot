@@ -78,4 +78,34 @@ function parseCheckin(rawText) {
   return { minutes, activity };
 }
 
-module.exports = { parseCheckin, parseDuration, parseActivity, ACTIVITY_KEYWORDS };
+// Hosts for fitness apps whose shared links/embeds carry the workout data as
+// an image or unfurled card rather than as plain text the parser can read.
+const FITNESS_LINK_HOSTS = [
+  'strava.com',
+  'strava.app.link',
+  'hevyapp.com',
+  'hevy.com',
+  'garmin.com',
+  'connect.garmin.com',
+  'whoop.com',
+  'fitbit.com',
+  'nike.com/run-club',
+  'zwift.com',
+];
+
+function containsFitnessLink(rawText) {
+  const urls = rawText.match(/https?:\/\/[^\s]+/gi) || [];
+  return urls.some((url) => {
+    const lower = url.toLowerCase();
+    return FITNESS_LINK_HOSTS.some((host) => lower.includes(host));
+  });
+}
+
+module.exports = {
+  parseCheckin,
+  parseDuration,
+  parseActivity,
+  containsFitnessLink,
+  ACTIVITY_KEYWORDS,
+  FITNESS_LINK_HOSTS,
+};
