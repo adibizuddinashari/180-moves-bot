@@ -3,7 +3,7 @@ const cron = require('node-cron');
 const config = require('./config');
 const db = require('./db');
 const commandList = require('./commands');
-const { parseCheckin } = require('./parser');
+const { parseCheckin, containsFitnessLink } = require('./parser');
 const { xpForCheckin, XP_WEEKLY_GOAL_BONUS, getLevelFromXp, levelProgress } = require('./leveling');
 const { runWeeklyRecap } = require('./weekly');
 
@@ -55,7 +55,22 @@ client.on('messageCreate', async (message) => {
 
   const parsed = parseCheckin(message.content);
   if (!parsed) {
-    await message.react('❓').catch(() => {});
+    const hasImage = message.attachments.some((a) => (a.contentType || '').startsWith('image/'));
+    const hasFitnessLink = containsFitnessLink(message.content);
+
+    if (hasImage || hasFitnessLink) {
+      await message.react('📸').catch(() => {});
+      await message
+        .reply({
+          content:
+            "Nice — but I can't read stats off screenshots or link previews yet. " +
+            'Reply with the duration too (e.g. "45 min" or "ran 5k in 32 min") and I\'ll log it.',
+          allowedMentions: { repliedUser: false },
+        })
+        .catch(() => {});
+    } else {
+      await message.react('❓').catch(() => {});
+    }
     return;
   }
 
