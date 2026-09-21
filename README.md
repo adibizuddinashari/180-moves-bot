@@ -118,20 +118,26 @@ Run these in Discord (admin-only — hidden from regular members by default):
 You don't need to wait weeks of real check-ins to confirm a milestone fires:
 
 ```
-/admin-log-checkin user:@you minutes:600
+/admin-log-checkin user:@you text:"600 min"
 ```
 
 This logs a real check-in (counts toward weekly progress, XP, and level) and immediately reports back whether it crossed any `minutes` milestone and whether the role assignment succeeded — so you can catch a bad role hierarchy/permission before members hit it for real.
 
 ### Manually crediting a missed check-in
 
-If the parser fails to read someone's message (unsupported phrasing, a language it doesn't recognize yet, a typo), you don't need to ask them to repost — as an admin, run:
+If the parser fails to read someone's message (unsupported phrasing, a language it doesn't recognize yet, a typo), you don't need to ask them to repost — as an admin, run it through the same parser members' check-ins use, by typing it the way they did:
+
+```
+/admin-log-checkin user:@Naz text:"123 minit trail run"
+```
+
+`text` accepts anything the check-in parser understands — English, Bahasa Melayu, or an `H:MM:SS` timecode (see [How check-ins are parsed](#how-check-ins-are-parsed)) — and auto-detects both the duration and the activity from it. If `text` can't be parsed (or the parser genuinely can't handle a phrasing yet), the command tells you so without logging anything; fall back to setting the exact values yourself:
 
 ```
 /admin-log-checkin user:@Naz minutes:123 activity:"trail run"
 ```
 
-This runs through the exact same logic as a real check-in: it adds to their weekly total, awards XP, checks for a level-up, and checks the `minutes` milestone track — so it's a full, correct backfill, not just a number edit.
+Either way, this runs through the exact same logic as a real check-in: it adds to their weekly total, awards XP, checks for a level-up, and checks the `minutes` milestone track — a full, correct backfill, not just a number edit.
 
 ```
 /admin-set-streak user:@you weeks:4

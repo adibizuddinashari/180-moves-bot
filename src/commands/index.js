@@ -5,6 +5,7 @@ const { levelProgress } = require('../leveling');
 const { getIsoWeekKey } = require('../weekUtils');
 const { checkMilestones, announceMilestones, TRACK_LABELS } = require('../milestones');
 const { recordCheckin } = require('../checkinService');
+const { parseCheckin } = require('../parser');
 
 const TRACK_CHOICES = [
   { name: 'Lifetime minutes', value: 'minutes' },
@@ -230,14 +231,48 @@ const commands = [
       .setDescription('[Admin] Manually log a check-in for a user (bot missed a message, or you\'re testing milestones)')
       .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
       .addUserOption((opt) => opt.setName('user').setDescription('Who to credit').setRequired(true))
-      .addIntegerOption((opt) =>
-        opt.setName('minutes').setDescription('Minutes to log').setRequired(true).setMinValue(1)
+      .addStringOption((opt) =>
+        opt
+          .setName('text')
+          .setDescription('Type it like a real check-in, e.g. "123 minit trail run" or "2:03:34 trail run"')
       )
-      .addStringOption((opt) => opt.setName('activity').setDescription('Activity label (default: "activity")')),
+      .addIntegerOption((opt) =>
+        opt
+          .setName('minutes')
+          .setDescription('Exact minutes (only if "text" above can\'t be parsed)')
+          .setMinValue(1)
+      )
+      .addStringOption((opt) => opt.setName('activity').setDescription('Activity label (with "minutes", or to override text\'s detected activity)')),
     async execute(interaction) {
       const user = interaction.options.getUser('user', true);
-      const minutes = interaction.options.getInteger('minutes', true);
-      const activity = interaction.options.getString('activity') || 'activity';
+      const text = interaction.options.getString('text');
+      const minutesInput = interaction.options.getInteger('minutes');
+      const activityOverride = interaction.options.getString('activity');
+
+      let minutes;
+      let activity;
+
+      if (text) {
+        const parsed = parseCheckin(text);
+        if (!parsed) {
+          await interaction.reply({
+            content: `Couldn't detect a duration in "${text}". Try a format like "30 min run", "1 jam senaman", or "2:03:34 trail run" — or use the \`minutes\` option to set it directly.`,
+            ephemeral: true,
+          });
+          return;
+        }
+        minutes = parsed.minutes;
+        activity = activityOverride || parsed.activity;
+      } else if (minutesInput) {
+        minutes = minutesInput;
+        activity = activityOverride || 'activity';
+      } else {
+        await interaction.reply({
+          content: 'Provide either `text` (e.g. "123 minit trail run") or `minutes`.',
+          ephemeral: true,
+        });
+        return;
+      }
 
       const result = await recordCheckin({ guild: interaction.guild, userId: user.id, minutes, activity });
 
