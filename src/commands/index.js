@@ -124,6 +124,7 @@ const commands = [
           '• "walked the dog for an hour"',
           '• "1h yoga session"',
           '• "30 minit lari" / "1 jam senaman" (Bahasa Melayu works too!)',
+          '• "2:03:34 trail run" (H:MM:SS from your app\'s "moving time" also works)',
           '',
           "Sharing a Strava link or a Hevy/app screenshot? Add the duration as text too —",
           'I can\'t read stats off images or link previews yet, e.g. "leg day 💪 52 min" + your screenshot.',
