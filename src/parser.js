@@ -21,6 +21,14 @@ const ACTIVITY_KEYWORDS = [
   'boxing', 'boxed', 'kickboxing', 'muay thai',
   'skating', 'skateboarding', 'skiing', 'ski', 'skied', 'skated',
   'sports', 'exercise', 'exercised', 'training', 'trained',
+  // Bahasa Melayu
+  'lari', 'berlari',
+  'jalan', 'berjalan', 'jalan kaki', 'mendaki', 'mendaki bukit',
+  'senaman', 'bersenam', 'gim',
+  'berbasikal', 'basikal',
+  'renang', 'berenang',
+  'menari', 'tarian',
+  'regangan',
 ];
 
 function normalize(text) {
@@ -30,7 +38,11 @@ function normalize(text) {
     .replace(/\bhalf a hour\b/g, '30 minutes')
     .replace(/\ban hour\b/g, '1 hour')
     .replace(/\ba hour\b/g, '1 hour')
-    .replace(/\bquarter of an hour\b/g, '15 minutes');
+    .replace(/\bquarter of an hour\b/g, '15 minutes')
+    // Bahasa Melayu
+    .replace(/\bsetengah jam\b/g, '30 minit')
+    .replace(/\bsuku jam\b/g, '15 minit')
+    .replace(/\bsejam\b/g, '1 jam');
 }
 
 function parseDuration(rawText) {
@@ -38,18 +50,20 @@ function parseDuration(rawText) {
   let totalMinutes = 0;
   let matched = false;
 
-  // Combined "1h30m" / "1 h 30 m" style
-  const compact = text.match(/\b(\d+(?:\.\d+)?)\s*h(?:rs?|ours?)?\s*(\d+(?:\.\d+)?)\s*m(?:ins?|inutes?)?\b/);
+  // Combined "1h30m" / "1 h 30 m" / "1 jam 30 minit" style
+  const compact = text.match(
+    /\b(\d+(?:\.\d+)?)\s*(?:h(?:rs?|ours?)?|jam)\s*(\d+(?:\.\d+)?)\s*(?:m(?:ins?|inutes?)?|minit)\b/
+  );
   if (compact) {
     totalMinutes += parseFloat(compact[1]) * 60 + parseFloat(compact[2]);
     matched = true;
   } else {
-    const hourMatch = text.match(/\b(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|h)\b/);
+    const hourMatch = text.match(/\b(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|h|jam)\b/);
     if (hourMatch) {
       totalMinutes += parseFloat(hourMatch[1]) * 60;
       matched = true;
     }
-    const minuteMatch = text.match(/\b(\d+(?:\.\d+)?)\s*(?:minutes?|mins?|m)\b/);
+    const minuteMatch = text.match(/\b(\d+(?:\.\d+)?)\s*(?:minutes?|mins?|m|minit)\b/);
     if (minuteMatch) {
       totalMinutes += parseFloat(minuteMatch[1]);
       matched = true;

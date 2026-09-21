@@ -22,7 +22,8 @@ a 180-minute goal, awards XP, and runs a leveling system with streaks and leader
   - `/leaderboard [scope]` — weekly minutes or all-time XP leaderboard
   - `/checkin-help` — reminds members how to format a check-in
   - `/milestone-add`, `/milestone-remove`, `/milestone-list` — [Admin] manage milestones
-  - `/admin-test-checkin`, `/admin-set-streak` — [Admin] test milestones/leveling instantly
+  - `/admin-log-checkin` — [Admin] manually log a check-in for a user (bot missed their message, or testing)
+  - `/admin-set-streak` — [Admin] test streak milestones instantly
   - `/admin-reset-user` — [Admin] wipe a user's check-ins/XP/streaks/milestones (e.g. after testing on a real account)
 
 ## Setup
@@ -112,10 +113,20 @@ Run these in Discord (admin-only — hidden from regular members by default):
 You don't need to wait weeks of real check-ins to confirm a milestone fires:
 
 ```
-/admin-test-checkin user:@you minutes:600
+/admin-log-checkin user:@you minutes:600
 ```
 
 This logs a real check-in (counts toward weekly progress, XP, and level) and immediately reports back whether it crossed any `minutes` milestone and whether the role assignment succeeded — so you can catch a bad role hierarchy/permission before members hit it for real.
+
+### Manually crediting a missed check-in
+
+If the parser fails to read someone's message (unsupported phrasing, a language it doesn't recognize yet, a typo), you don't need to ask them to repost — as an admin, run:
+
+```
+/admin-log-checkin user:@Naz minutes:123 activity:"trail run"
+```
+
+This runs through the exact same logic as a real check-in: it adds to their weekly total, awards XP, checks for a level-up, and checks the `minutes` milestone track — so it's a full, correct backfill, not just a number edit.
 
 ```
 /admin-set-streak user:@you weeks:4

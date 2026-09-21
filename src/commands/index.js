@@ -123,6 +123,7 @@ const commands = [
           '• "30 min run this morning"',
           '• "walked the dog for an hour"',
           '• "1h yoga session"',
+          '• "30 minit lari" / "1 jam senaman" (Bahasa Melayu works too!)',
           '',
           "Sharing a Strava link or a Hevy/app screenshot? Add the duration as text too —",
           'I can\'t read stats off images or link previews yet, e.g. "leg day 💪 52 min" + your screenshot.',
@@ -224,18 +225,18 @@ const commands = [
   },
   {
     data: new SlashCommandBuilder()
-      .setName('admin-test-checkin')
-      .setDescription('[Admin] Simulate a check-in to test milestones/leveling without waiting on real activity')
+      .setName('admin-log-checkin')
+      .setDescription('[Admin] Manually log a check-in for a user (bot missed a message, or you\'re testing milestones)')
       .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
       .addUserOption((opt) => opt.setName('user').setDescription('Who to credit').setRequired(true))
       .addIntegerOption((opt) =>
         opt.setName('minutes').setDescription('Minutes to log').setRequired(true).setMinValue(1)
       )
-      .addStringOption((opt) => opt.setName('activity').setDescription('Activity label (default: "test")')),
+      .addStringOption((opt) => opt.setName('activity').setDescription('Activity label (default: "activity")')),
     async execute(interaction) {
       const user = interaction.options.getUser('user', true);
       const minutes = interaction.options.getInteger('minutes', true);
-      const activity = interaction.options.getString('activity') || 'test';
+      const activity = interaction.options.getString('activity') || 'activity';
 
       const result = await recordCheckin({ guild: interaction.guild, userId: user.id, minutes, activity });
 
