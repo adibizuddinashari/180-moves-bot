@@ -38,6 +38,24 @@ db.exec(`
     last_goal_week TEXT,
     PRIMARY KEY (guild_id, user_id)
   );
+
+  CREATE TABLE IF NOT EXISTS milestones (
+    guild_id TEXT NOT NULL,
+    track TEXT NOT NULL CHECK (track IN ('minutes', 'streak')),
+    threshold INTEGER NOT NULL,
+    role_id TEXT NOT NULL,
+    label TEXT NOT NULL,
+    PRIMARY KEY (guild_id, track, threshold)
+  );
+
+  CREATE TABLE IF NOT EXISTS awarded_milestones (
+    guild_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    track TEXT NOT NULL,
+    threshold INTEGER NOT NULL,
+    awarded_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (guild_id, user_id, track, threshold)
+  );
 `);
 
 function ensureMember(guildId, userId) {
@@ -123,6 +141,58 @@ function updateStreak(guildId, userId, { currentStreak, bestStreak, lastGoalWeek
   ).run(currentStreak, bestStreak, lastGoalWeek, guildId, userId);
 }
 
+function setMinutesAndXp(guildId, userId, { totalMinutes, totalXp }) {
+  ensureMember(guildId, userId);
+  db.prepare(
+    `UPDATE members SET total_minutes = ?, total_xp = ? WHERE guild_id = ? AND user_id = ?`
+  ).run(totalMinutes, totalXp, guildId, userId);
+}
+
+function addMilestone(guildId, track, threshold, roleId, label) {
+  db.prepare(
+    `INSERT INTO milestones (guild_id, track, threshold, role_id, label)
+     VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(guild_id, track, threshold) DO UPDATE SET role_id = excluded.role_id, label = excluded.label`
+  ).run(guildId, track, threshold, roleId, label);
+}
+
+function removeMilestone(guildId, track, threshold) {
+  return db
+    .prepare(`DELETE FROM milestones WHERE guild_id = ? AND track = ? AND threshold = ?`)
+    .run(guildId, track, threshold).changes;
+}
+
+function listMilestones(guildId, track = null) {
+  if (track) {
+    return db
+      .prepare(`SELECT * FROM milestones WHERE guild_id = ? AND track = ? ORDER BY threshold ASC`)
+      .all(guildId, track);
+  }
+  return db
+    .prepare(`SELECT * FROM milestones WHERE guild_id = ? ORDER BY track ASC, threshold ASC`)
+    .all(guildId);
+}
+
+function getUnawardedMilestones(guildId, userId, track, value) {
+  return db
+    .prepare(
+      `SELECT m.* FROM milestones m
+       WHERE m.guild_id = ? AND m.track = ? AND m.threshold <= ?
+       AND NOT EXISTS (
+         SELECT 1 FROM awarded_milestones a
+         WHERE a.guild_id = m.guild_id AND a.user_id = ? AND a.track = m.track AND a.threshold = m.threshold
+       )
+       ORDER BY m.threshold ASC`
+    )
+    .all(guildId, track, value, userId);
+}
+
+function recordMilestoneAwarded(guildId, userId, track, threshold) {
+  db.prepare(
+    `INSERT OR IGNORE INTO awarded_milestones (guild_id, user_id, track, threshold) VALUES (?, ?, ?, ?)`
+  ).run(guildId, userId, track, threshold);
+}
+
 module.exports = {
   db,
   addCheckin,
@@ -132,4 +202,10 @@ module.exports = {
   getAllTimeLeaderboard,
   getAllMembersWithWeeklyTotals,
   updateStreak,
+  setMinutesAndXp,
+  addMilestone,
+  removeMilestone,
+  listMilestones,
+  getUnawardedMilestones,
+  recordMilestoneAwarded,
 };

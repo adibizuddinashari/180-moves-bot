@@ -3,6 +3,7 @@ const config = require('./config');
 const db = require('./db');
 const { getPreviousWeekKey } = require('./weekUtils');
 const { levelProgress } = require('./leveling');
+const { checkMilestones, announceMilestones } = require('./milestones');
 
 // Runs at the scheduled cron time (default Sunday 20:00). By then the ISO week
 // has NOT rolled over yet (week rolls Monday 00:00), so we summarize the week
@@ -33,6 +34,14 @@ async function runWeeklyRecap(client) {
           lastGoalWeek: weekKey,
         });
         hitGoal.push({ ...m, currentStreak });
+
+        const newMilestones = await checkMilestones({
+          guild,
+          userId: m.user_id,
+          track: 'streak',
+          value: currentStreak,
+        });
+        await announceMilestones({ guild, userId: m.user_id, track: 'streak', awarded: newMilestones });
       } else if (m.minutes > 0) {
         db.updateStreak(guild.id, m.user_id, {
           currentStreak: 0,
