@@ -14,10 +14,15 @@ a 180-minute goal, awards XP, and runs a leveling system with streaks and leader
   for crossing the weekly goal. Level-up is announced automatically.
 - **Weekly recap**: a scheduled job (default Sunday 20:00) posts who hit the
   180-minute goal, tracks weekly streaks, and resets the week.
+- **Milestones**: admins map lifetime-minute and weekly-streak thresholds to
+  Discord roles; the bot auto-assigns the role and announces it the moment a
+  member crosses one. See [Milestones](#milestones) below.
 - **Slash commands**:
   - `/stats [user]` — weekly progress, level, XP, streak
   - `/leaderboard [scope]` — weekly minutes or all-time XP leaderboard
   - `/checkin-help` — reminds members how to format a check-in
+  - `/milestone-add`, `/milestone-remove`, `/milestone-list` — [Admin] manage milestones
+  - `/admin-test-checkin`, `/admin-set-streak` — [Admin] test milestones/leveling instantly
 
 ## Setup
 
@@ -50,7 +55,7 @@ cp .env.example .env
 
 ```bash
 npm install
-npm run deploy-commands   # registers /stats, /leaderboard, /checkin-help
+npm run deploy-commands   # registers all slash commands
 npm start
 ```
 
@@ -77,6 +82,47 @@ yoga, gym, swim, bike, hike, sports, ...). If no duration is found, nothing is
 logged and the bot reacts ❓. If a duration is found but no known activity
 keyword, it logs the minutes under a generic "activity" label — progress still
 counts.
+
+## Milestones
+
+Two independent tracks, each mapped to a Discord role:
+
+- **`minutes`** — lifetime minutes logged across all check-ins (e.g. 500, 1,500, 5,000).
+- **`streak`** — consecutive weeks hitting the weekly goal, updated by the Sunday recap job (e.g. 4, 8, 12 weeks).
+
+### 1. Create the roles in Discord
+
+Server Settings → Roles → create one role per tier (e.g. "🥉 180 Mover", "🥈 Dedicated Mover", "🔥 4-Week Streak"). Make sure the bot's own role is positioned **above** these roles in the role list, and the bot has the **Manage Roles** permission — otherwise it can see the role but can't assign it.
+
+### 2. Map thresholds to roles
+
+Run these in Discord (admin-only — hidden from regular members by default):
+
+```
+/milestone-add track:Lifetime minutes threshold:500 role:@180 Mover
+/milestone-add track:Lifetime minutes threshold:1500 role:@Dedicated Mover
+/milestone-add track:Weekly streak threshold:4 role:@4-Week Streak
+```
+
+`/milestone-list` shows everything configured. `/milestone-remove track:... threshold:...` deletes one.
+
+### 3. Test before relying on real activity
+
+You don't need to wait weeks of real check-ins to confirm a milestone fires:
+
+```
+/admin-test-checkin user:@you minutes:600
+```
+
+This logs a real check-in (counts toward weekly progress, XP, and level) and immediately reports back whether it crossed any `minutes` milestone and whether the role assignment succeeded — so you can catch a bad role hierarchy/permission before members hit it for real.
+
+```
+/admin-set-streak user:@you weeks:4
+```
+
+This directly sets a test account's streak counter and checks it against the `streak` track, without waiting for Sunday's recap job. Useful for confirming a streak milestone before the first real week rolls over.
+
+Both commands are restricted to members with the **Manage Server** permission.
 
 ## Customizing
 

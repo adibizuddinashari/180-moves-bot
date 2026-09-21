@@ -1,11 +1,10 @@
 const { Client, GatewayIntentBits, Partials, Collection, EmbedBuilder } = require('discord.js');
 const cron = require('node-cron');
 const config = require('./config');
-const db = require('./db');
 const commandList = require('./commands');
 const { parseCheckin, containsFitnessLink } = require('./parser');
-const { xpForCheckin, XP_WEEKLY_GOAL_BONUS, getLevelFromXp, levelProgress } = require('./leveling');
 const { runWeeklyRecap } = require('./weekly');
+const { recordCheckin } = require('./checkinService');
 
 const client = new Client({
   intents: [
@@ -75,38 +74,29 @@ client.on('messageCreate', async (message) => {
   }
 
   const { minutes, activity } = parsed;
-  const guildId = message.guildId;
   const userId = message.author.id;
 
-  const memberBefore = db.getMember(guildId, userId);
-  const levelBefore = getLevelFromXp(memberBefore.total_xp);
-
-  const weekBefore = db.getWeeklyMinutes(guildId, userId);
-  const goal = config.weeklyGoalMinutes;
-  const crossedGoalThisCheckin = weekBefore.minutes < goal && weekBefore.minutes + minutes >= goal;
-
-  let xpEarned = xpForCheckin(minutes);
-  if (crossedGoalThisCheckin) xpEarned += XP_WEEKLY_GOAL_BONUS;
-
-  db.addCheckin({ guildId, userId, messageId: message.id, minutes, activity, xpEarned });
-
-  const memberAfter = db.getMember(guildId, userId);
-  const progress = levelProgress(memberAfter.total_xp);
-  const weekAfter = db.getWeeklyMinutes(guildId, userId);
+  const result = await recordCheckin({
+    guild: message.guild,
+    userId,
+    minutes,
+    activity,
+    messageId: message.id,
+  });
 
   await message.react('✅').catch(() => {});
 
-  const remaining = Math.max(0, goal - weekAfter.minutes);
-  let replyText = `Logged **${minutes} min** of **${activity}**. Weekly total: **${weekAfter.minutes}/${goal} min** (+${xpEarned} XP)`;
+  const remaining = Math.max(0, result.goal - result.weekAfter.minutes);
+  let replyText = `Logged **${minutes} min** of **${activity}**. Weekly total: **${result.weekAfter.minutes}/${result.goal} min** (+${result.xpEarned} XP)`;
   replyText += remaining > 0 ? ` — ${remaining} min to go!` : ' — goal hit for the week! 🎉';
 
   await message.reply({ content: replyText, allowedMentions: { repliedUser: false } }).catch(() => {});
 
-  if (progress.level > levelBefore) {
+  if (result.leveledUp) {
     const embed = new EmbedBuilder()
       .setColor(0xfee75c)
       .setTitle('🎉 Level Up!')
-      .setDescription(`${message.author} just reached **Level ${progress.level}**!`);
+      .setDescription(`${message.author} just reached **Level ${result.levelAfter}**!`);
     const announceChannel =
       config.announceChannelId && config.announceChannelId !== message.channelId
         ? message.guild.channels.cache.get(config.announceChannelId)
