@@ -23,6 +23,7 @@ a 180-minute goal, awards XP, and runs a leveling system with streaks and leader
   - `/checkin-help` — reminds members how to format a check-in
   - `/milestone-add`, `/milestone-remove`, `/milestone-list` — [Admin] manage milestones
   - `/admin-test-checkin`, `/admin-set-streak` — [Admin] test milestones/leveling instantly
+  - `/admin-reset-user` — [Admin] wipe a user's check-ins/XP/streaks/milestones (e.g. after testing on a real account)
 
 ## Setup
 
@@ -123,6 +124,16 @@ This logs a real check-in (counts toward weekly progress, XP, and level) and imm
 This directly sets a test account's streak counter and checks it against the `streak` track, without waiting for Sunday's recap job. Useful for confirming a streak milestone before the first real week rolls over.
 
 Both commands are restricted to members with the **Manage Server** permission.
+
+### 4. Clean up test data
+
+If you tested on your own real account (rather than a throwaway test account), your check-ins, XP, and any milestone roles from testing are now mixed in with real data. Clear them with:
+
+```
+/admin-reset-user user:@you
+```
+
+This deletes all of that user's check-ins, resets XP/minutes/streaks to 0, clears milestone-award records (so milestones can re-fire correctly later), and removes any Discord roles that testing granted. Pass `remove_roles:false` if you'd rather keep the roles and only wipe the numbers. This is destructive and cannot be undone — double-check the `user` option before running it.
 
 ## Customizing
 

@@ -193,6 +193,35 @@ function recordMilestoneAwarded(guildId, userId, track, threshold) {
   ).run(guildId, userId, track, threshold);
 }
 
+function deleteCheckinsForUser(guildId, userId) {
+  return db.prepare(`DELETE FROM checkins WHERE guild_id = ? AND user_id = ?`).run(guildId, userId).changes;
+}
+
+function resetMemberStats(guildId, userId) {
+  ensureMember(guildId, userId);
+  db.prepare(
+    `UPDATE members SET total_xp = 0, total_minutes = 0, current_streak = 0, best_streak = 0, last_goal_week = NULL
+     WHERE guild_id = ? AND user_id = ?`
+  ).run(guildId, userId);
+}
+
+function getAwardedMilestoneRoles(guildId, userId) {
+  return db
+    .prepare(
+      `SELECT a.track, a.threshold, m.role_id, m.label
+       FROM awarded_milestones a
+       JOIN milestones m ON m.guild_id = a.guild_id AND m.track = a.track AND m.threshold = a.threshold
+       WHERE a.guild_id = ? AND a.user_id = ?`
+    )
+    .all(guildId, userId);
+}
+
+function clearAwardedMilestones(guildId, userId) {
+  return db
+    .prepare(`DELETE FROM awarded_milestones WHERE guild_id = ? AND user_id = ?`)
+    .run(guildId, userId).changes;
+}
+
 module.exports = {
   db,
   addCheckin,
@@ -208,4 +237,8 @@ module.exports = {
   listMilestones,
   getUnawardedMilestones,
   recordMilestoneAwarded,
+  deleteCheckinsForUser,
+  resetMemberStats,
+  getAwardedMilestoneRoles,
+  clearAwardedMilestones,
 };

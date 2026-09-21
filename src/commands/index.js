@@ -288,6 +288,51 @@ const commands = [
       await interaction.reply({ content: lines.join('\n'), ephemeral: true });
     },
   },
+  {
+    data: new SlashCommandBuilder()
+      .setName('admin-reset-user')
+      .setDescription("[Admin] Wipe a user's check-ins, XP, streaks, and milestone progress (e.g. after testing)")
+      .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+      .addUserOption((opt) => opt.setName('user').setDescription('Who to reset').setRequired(true))
+      .addBooleanOption((opt) =>
+        opt.setName('remove_roles').setDescription('Also remove any milestone roles granted (default: true)')
+      ),
+    async execute(interaction) {
+      const user = interaction.options.getUser('user', true);
+      const removeRolesOpt = interaction.options.getBoolean('remove_roles');
+      const shouldRemoveRoles = removeRolesOpt === null ? true : removeRolesOpt;
+      const guildId = interaction.guildId;
+
+      const awardedRoles = db.getAwardedMilestoneRoles(guildId, user.id);
+      const checkinsDeleted = db.deleteCheckinsForUser(guildId, user.id);
+      db.resetMemberStats(guildId, user.id);
+      db.clearAwardedMilestones(guildId, user.id);
+
+      const lines = [
+        `🧹 Reset ${user}: deleted ${checkinsDeleted} check-in(s), XP/minutes/streaks back to 0, milestone progress cleared.`,
+      ];
+
+      if (awardedRoles.length > 0) {
+        if (shouldRemoveRoles) {
+          const member = await interaction.guild.members.fetch(user.id).catch(() => null);
+          const removed = [];
+          const failed = [];
+          for (const r of awardedRoles) {
+            const ok = member
+              ? await member.roles.remove(r.role_id).then(() => true).catch(() => false)
+              : false;
+            (ok ? removed : failed).push(r.label);
+          }
+          if (removed.length > 0) lines.push(`Removed roles: ${removed.join(', ')}`);
+          if (failed.length > 0) lines.push(`Could not remove (check bot permissions/hierarchy): ${failed.join(', ')}`);
+        } else {
+          lines.push(`Roles left in place: ${awardedRoles.map((r) => r.label).join(', ')}`);
+        }
+      }
+
+      await interaction.reply({ content: lines.join('\n'), ephemeral: true });
+    },
+  },
 ];
 
 module.exports = commands;
