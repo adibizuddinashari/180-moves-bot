@@ -78,12 +78,17 @@ to your server instead of waiting ~1 hour for global propagation.
 
 ## How check-ins are parsed
 
-The parser (`src/parser.js`) looks for a duration (`30 min`, `1 hour`, `1h30m`,
-`half an hour`, etc.) and an activity keyword from a built-in list (run, walk,
-yoga, gym, swim, bike, hike, sports, ...). If no duration is found, nothing is
-logged and the bot reacts ❓. If a duration is found but no known activity
-keyword, it logs the minutes under a generic "activity" label — progress still
-counts.
+The parser (`src/parser.js`) looks for a duration and an activity keyword from
+a built-in list (run, walk, yoga, gym, swim, bike, hike, sports, ... — plus
+Bahasa Melayu equivalents like lari, jalan, senaman, renang). If no duration
+is found, nothing is logged and the bot reacts ❓. If a duration is found but
+no known activity keyword, it logs the minutes under a generic "activity"
+label — progress still counts.
+
+Supported duration formats:
+- Words: `30 min`, `1 hour`, `1h30m`, `half an hour`, `45 mins`
+- Bahasa Melayu: `30 minit`, `1 jam`, `sejam`, `setengah jam`, `suku jam`, `1 jam 30 minit`
+- Timecode: `2:03:34` (H:MM:SS — the "moving time" format Strava/Hevy display). Bare `MM:SS` (e.g. `23:45`) is intentionally **not** treated as a duration since it's indistinguishable from someone mentioning a clock time like "ran at 6:30" — only the three-part H:MM:SS form is unambiguous enough to parse automatically.
 
 ## Milestones
 

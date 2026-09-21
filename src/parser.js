@@ -47,6 +47,19 @@ function normalize(text) {
 
 function parseDuration(rawText) {
   const text = normalize(rawText);
+
+  // H:MM:SS timecode, e.g. Strava/Hevy's "Moving Time: 2:03:53". Unambiguous
+  // (unlike bare MM:SS, which looks identical to a clock time like "6:30"),
+  // so it's handled on its own and short-circuits the word-based parsing below.
+  const timecode = text.match(/\b(\d{1,2}):([0-5]\d):([0-5]\d)\b/);
+  if (timecode) {
+    const hours = parseInt(timecode[1], 10);
+    const mins = parseInt(timecode[2], 10);
+    const secs = parseInt(timecode[3], 10);
+    const total = Math.round(hours * 60 + mins + secs / 60);
+    return total > 0 ? total : null;
+  }
+
   let totalMinutes = 0;
   let matched = false;
 
