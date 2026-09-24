@@ -18,6 +18,19 @@ function progressBar(current, goal, size = 14) {
   return '█'.repeat(filled) + '░'.repeat(size - filled);
 }
 
+function badgesSummaryLine(guildId, userId) {
+  const earned = db.getAwardedMilestoneRoles(guildId, userId);
+  if (earned.length === 0) return "None yet — check /badges to see what's next!";
+  return earned
+    .sort((a, b) => a.track.localeCompare(b.track) || a.threshold - b.threshold)
+    .map((m) => m.label)
+    .join(' · ');
+}
+
+function trackProgressValue(track, member) {
+  return track === 'streak' ? member.current_streak : member.total_minutes;
+}
+
 const commands = [
   {
     data: new SlashCommandBuilder()
@@ -56,7 +69,8 @@ const commands = [
           },
           { name: 'Current streak', value: `${member.current_streak} week(s)`, inline: true },
           { name: 'Best streak', value: `${member.best_streak} week(s)`, inline: true },
-          { name: 'Lifetime minutes', value: String(member.total_minutes), inline: true }
+          { name: 'Lifetime minutes', value: String(member.total_minutes), inline: true },
+          { name: '🏅 Badges', value: badgesSummaryLine(guildId, target.id) }
         );
 
       await interaction.reply({ embeds: [embed] });
@@ -134,6 +148,65 @@ const commands = [
         ].join('\n'),
         ephemeral: true,
       });
+    },
+  },
+  {
+    data: new SlashCommandBuilder()
+      .setName('badges')
+      .setDescription("Show earned milestone badges and what's next")
+      .addUserOption((opt) =>
+        opt.setName('user').setDescription("Check someone else's badges").setRequired(false)
+      ),
+    async execute(interaction) {
+      const target = interaction.options.getUser('user') || interaction.user;
+      const guildId = interaction.guildId;
+      const member = db.getMember(guildId, target.id);
+      const earned = db.getAwardedMilestoneRoles(guildId, target.id);
+
+      const earnedByTrack = {};
+      for (const m of earned) {
+        earnedByTrack[m.track] = earnedByTrack[m.track] || [];
+        earnedByTrack[m.track].push(m);
+      }
+
+      const fields = [];
+      for (const track of ['minutes', 'streak']) {
+        const configured = db.listMilestones(guildId, track);
+        if (configured.length === 0) continue;
+
+        const earnedForTrack = (earnedByTrack[track] || []).sort((a, b) => a.threshold - b.threshold);
+        const currentValue = trackProgressValue(track, member);
+        const next = db.getNextMilestone(guildId, track, currentValue);
+
+        const lines = [
+          earnedForTrack.length > 0
+            ? earnedForTrack.map((m) => `✅ ${m.label} (${m.threshold})`).join('\n')
+            : 'None yet',
+        ];
+        if (next) {
+          lines.push(`⏳ Next: **${next.label}** at ${next.threshold} (currently ${currentValue})`);
+        } else if (earnedForTrack.length > 0) {
+          lines.push('🎉 All milestones unlocked!');
+        }
+
+        fields.push({ name: TRACK_LABELS[track] || track, value: lines.join('\n') });
+      }
+
+      if (fields.length === 0) {
+        await interaction.reply({
+          content: 'No milestones have been configured on this server yet.',
+          ephemeral: true,
+        });
+        return;
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor(0x9b59b6)
+        .setAuthor({ name: target.username, iconURL: target.displayAvatarURL() })
+        .setTitle('🏅 Badges')
+        .addFields(fields);
+
+      await interaction.reply({ embeds: [embed] });
     },
   },
   {
