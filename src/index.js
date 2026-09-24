@@ -20,6 +20,14 @@ for (const command of commandList) {
   client.commands.set(command.data.name, command);
 }
 
+// Without these, an unlistened 'error' event (e.g. a transient WebSocket
+// handshake timeout) is fatal to the whole Node process — discord.js already
+// retries the gateway connection automatically, so logging is all we need.
+client.on('error', (err) => console.error('Discord client error:', err));
+client.on('shardError', (err) => console.error('Discord shard error:', err));
+process.on('unhandledRejection', (err) => console.error('Unhandled rejection:', err));
+process.on('uncaughtException', (err) => console.error('Uncaught exception:', err));
+
 client.once('clientReady', () => {
   console.log(`Logged in as ${client.user.tag}`);
 
