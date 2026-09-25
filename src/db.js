@@ -187,6 +187,14 @@ function getUnawardedMilestones(guildId, userId, track, value) {
     .all(guildId, track, value, userId);
 }
 
+function getNextMilestone(guildId, track, value) {
+  return db
+    .prepare(
+      `SELECT * FROM milestones WHERE guild_id = ? AND track = ? AND threshold > ? ORDER BY threshold ASC LIMIT 1`
+    )
+    .get(guildId, track, value);
+}
+
 function recordMilestoneAwarded(guildId, userId, track, threshold) {
   db.prepare(
     `INSERT OR IGNORE INTO awarded_milestones (guild_id, user_id, track, threshold) VALUES (?, ?, ?, ?)`
@@ -236,6 +244,7 @@ module.exports = {
   removeMilestone,
   listMilestones,
   getUnawardedMilestones,
+  getNextMilestone,
   recordMilestoneAwarded,
   deleteCheckinsForUser,
   resetMemberStats,

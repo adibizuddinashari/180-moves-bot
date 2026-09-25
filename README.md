@@ -18,7 +18,8 @@ a 180-minute goal, awards XP, and runs a leveling system with streaks and leader
   Discord roles; the bot auto-assigns the role and announces it the moment a
   member crosses one. See [Milestones](#milestones) below.
 - **Slash commands**:
-  - `/stats [user]` — weekly progress, level, XP, streak
+  - `/stats [user]` — weekly progress, level, XP, streak, earned badges
+  - `/badges [user]` — earned milestone badges per track, plus what's next and how close they are
   - `/leaderboard [scope]` — weekly minutes or all-time XP leaderboard
   - `/checkin-help` — reminds members how to format a check-in
   - `/milestone-add`, `/milestone-remove`, `/milestone-list` — [Admin] manage milestones
@@ -96,6 +97,8 @@ Two independent tracks, each mapped to a Discord role:
 
 - **`minutes`** — lifetime minutes logged across all check-ins (e.g. 500, 1,500, 5,000).
 - **`streak`** — consecutive weeks hitting the weekly goal, updated by the Sunday recap job (e.g. 4, 8, 12 weeks).
+
+Earning one grants the mapped Discord role *and* shows up as a badge in `/badges` and `/stats` — members can run `/badges` any time to see what they've earned and how close they are to the next tier on each track, with no extra setup beyond what's below.
 
 ### 1. Create the roles in Discord
 
